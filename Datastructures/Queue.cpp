@@ -80,21 +80,35 @@ public:
 
 };
 
+template <typename t, size_t sz>
+class CircularQueue {
+private:
+    std::array<t, sz> InternalBuffer;
+    t* StartPointer = InternalBuffer.data();
+    t* EndPointer = InternalBuffer.data();
+public:
+    const inline size_t max_capacity() const {
+        return sz;
+
+    }
+    const inline size_t size() {
+        return std::abs(StartPointer - EndPointer); 
+
+    }
 
 
+    bool Enqueue(t Val) {
+        // how 2 check if its full?
+        *EndPointer = Val;
+        EndPointer = (InternalBuffer.data() + (((EndPointer - InternalBuffer.data()) + 1)  % max_capacity()));
+        
+    };
 
+};
 int main()
 {
-    LinearQueue<int, 10> a;
-    for (unsigned int i = 0; i < 10; i++) {
-        a.Enqueue(i);
-    };
-    a.Dequeue();
-   // a.test();
-    for (auto i : a) {
-        std::cout << i << "\n";
-    }
-    
+
+    CircularQueue<int, 3> bl;
    
     
 }
