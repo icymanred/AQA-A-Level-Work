@@ -5,11 +5,13 @@
 #include <iostream>
 
 #if defined(DEBUG) || defined(_DEBUG) 
-
+#include <source_location>
+#include <stacktrace>
 #define DBGEXCEPT 
+#define exceptionAssert(a,b) if (a) { std::cerr << "Failed assertation: " << #a << " in " << std::source_location::current().function_name() << ":" << std::source_location::current().line() <<   "\n" << std::stacktrace::current(); throw b; }
 #else
 #define DBGEXCEPT noexcept
-
+#define exceptionAssert(a,b)
 #endif
 
 
@@ -27,6 +29,7 @@ public:
     }
     // Returns success, 
     bool Enqueue(t Val) DBGEXCEPT{
+        exceptionAssert(space >= max_capacity(), std::out_of_range{ "Queue maximum capacity reached" });
 #if defined(DEBUG) || defined(_DEBUG) 
         if (space >= max_capacity()) {
             throw std::out_of_range("Queue maximum capacity reached");
@@ -38,11 +41,7 @@ public:
 
     }
     t Dequeue() {
-#if defined(DEBUG) || defined(_DEBUG) 
-        if (space < 1) {
-            throw std::out_of_range("Attempted to dequeue empty queue");
-    }
-#endif
+        exceptionAssert(space < 1, std::out_of_range{ "Attempted to dequeue empty queue" });
         for (unsigned i = 1; i < max_capacity(); i++) {
             internalBuffer[i - 1] = internalBuffer[i];
         }
@@ -61,13 +60,8 @@ public:
             return idx == b.idx && q == b.q;
         }
         t& operator*() {
-#if defined(DEBUG) || defined(_DEBUG) 
-            if (idx > q->size()) {
-                throw std::out_of_range{ "Queue iterator reference larger then current queue used size" };
-            }
-#endif
+            exceptionAssert(idx > q->size(), std::out_of_range{ "Queue iterator reference larger then current queue used size" }); 
             return q->internalBuffer[idx];
-
         }
     };  
     Iterator begin() {
@@ -80,36 +74,83 @@ public:
 
 };
 
+
+// caving in and using size variable
 template <typename t, size_t sz>
 class CircularQueue {
 private:
     std::array<t, sz> InternalBuffer;
+    size_t Space;
     t* StartPointer = InternalBuffer.data();
     t* EndPointer = InternalBuffer.data();
+    void IncrementStart() {
+        size_t StartIdx = StartPointer - InternalBuffer.data();
+        if (StartIdx == (sz - 1)) {
+            StartPointer = InternalBuffer.data();
+
+        }
+        else {
+            StartPointer++;
+
+        }
+    }
+    void IncrementEnd() {
+        size_t EndIdx = EndPointer - InternalBuffer.data();
+        if (EndIdx == (sz - 1)) {
+            EndPointer = InternalBuffer.data();
+        }
+        else {
+            EndPointer++;
+        }
+    }
 public:
     const inline size_t max_capacity() const {
         return sz;
 
     }
     const inline size_t size() {
-        return std::abs(StartPointer - EndPointer); 
+        return Space;
 
     }
-
+    void test(){
+        std::cout << EndPointer << "\n";
+        IncrementEnd();
+        std::cout << EndPointer << "\n";
+        IncrementEnd();
+        std::cout << EndPointer << "\n";
+        IncrementEnd();
+        std::cout << EndPointer << "\n";
+    }
 
     bool Enqueue(t Val) {
-        // how 2 check if its full?
+    
+        exceptionAssert(Space >= max_capacity(), std::out_of_range("Attempted to enqueue an item in a circular queue"));
+        IncrementEnd();
+        Space++;
         *EndPointer = Val;
-        EndPointer = (InternalBuffer.data() + (((EndPointer - InternalBuffer.data()) + 1)  % max_capacity()));
+
         
     };
+    t Dequeue() {
+        exceptionAssert(Space == 0, std::out_of_range("Attempted to dequeue an empty circular queue"));
+        t val = *StartPointer;
+        IncrementStart();
+        Space--;
+        return val;
+
+
+    }
 
 };
 int main()
 {
 
     CircularQueue<int, 3> bl;
-   
+    bl.Enqueue(3);
+    bl.Enqueue(3);
+    bl.Enqueue(3);
+        bl.Enqueue(3);
+
     
 }
 
